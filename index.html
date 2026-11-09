@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funil CRM — do lead ao cliente</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo-iw.svg">
+<link rel="stylesheet" href="design-tokens.css">
+<style>
+/* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio, geometry.
+   Put this @layer first; product CSS outside the layer wins ordinary layout rules.
+   Native hidden and closed-dialog states take precedence over component display rules. */
+@layer od-layout {
+  [hidden]:not([hidden="until-found" i]) { display: none !important; }
+  dialog:not([open]) { display: none !important; }
+
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+
+  .od-icon { display: inline-block; inline-size: var(--od-icon-size, 1em); block-size: var(--od-icon-size, 1em); flex: none; }
+
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .od-clamp-2 { -webkit-line-clamp: 2; }
+  .od-clamp-3 { -webkit-line-clamp: 3; }
+  .od-lines-2 { min-height: calc(2 * 1.4em); }
+  .od-nowrap  { white-space: nowrap; }
+  .od-keep    { word-break: keep-all; overflow-wrap: anywhere; }
+
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+  .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+             padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+  .od-rail::-webkit-scrollbar { display: none; }
+  :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+  :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+  .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+:root [hidden]:where(:not([hidden="until-found" i])) { display: none; }
+/* /OD-LAYOUT-PRIMITIVES v1 */
+
+/* Tokens: ver design-tokens.css (cores, fontes, espaços, raios, movimento). */
+:root { --od-icon-size: 1em; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font-family: var(--font); font-weight: var(--fw); font-size: var(--fs); line-height: 1.5; color: var(--text); background: var(--bg); }
+h1, h2, h3 { font-family: var(--font-display); font-weight: var(--fw-display); margin: 0; line-height: 1.25; }
+h1 { font-size: var(--fs-xl); } h2 { font-size: var(--fs-lg); } h3 { font-size: var(--fs); }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent-text); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.muted { color: var(--muted); }
+.small { font-size: var(--fs-sm); }
+
+/* ===== App shell ===== */
+.app { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); min-height: 100vh; }
+.side { background: var(--side-bg); color: var(--side-text); border-right: 1px solid var(--side-border); padding: var(--s4); display: flex; flex-direction: column; gap: var(--s5); position: sticky; top: 0; height: 100vh; }
+.brand { display: flex; align-items: center; gap: var(--s3); padding: var(--s1) var(--s2); }
+.brand { border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: var(--r); min-height: var(--tap); }
+.brand:hover { background: var(--side-active-bg); }
+.brand-logo { display: block; width: 44px; height: auto; aspect-ratio: 1649 / 964; flex: none; }
+.start { min-height: 100vh; background: var(--brand-ink); color: var(--brand-mist); display: grid; place-items: center; padding: var(--s6) var(--s4); }
+.start-in { width: min(480px, 100%); display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--s5); }
+.start-logo { display: block; width: clamp(128px, 28vw, 200px); height: auto; aspect-ratio: 1649 / 964; }
+.start h1 { font-size: clamp(28px, 5vw, 40px); color: var(--brand-mist); }
+.start p { color: #a7b0bf; max-width: 36ch; }
+.start-btn { min-height: 48px; padding: 0 var(--s6); border-radius: var(--r); border: 1px solid var(--brand-gold); background: var(--brand-gold); color: var(--brand-ink); font: inherit; font-weight: var(--fw-bold); font-size: var(--fs); cursor: pointer; transition: background var(--dur) var(--ease-out); }
+.start-btn:hover { background: #d6c08a; border-color: #d6c08a; }
+.start-btn:focus-visible { outline: 2px solid var(--brand-mist); outline-offset: 3px; }
+.start-note { font-size: var(--fs-sm); color: #a7b0bf; }
+.login-form { width: 100%; display: flex; flex-direction: column; gap: var(--s3); text-align: left; }
+.login-form label { color: var(--brand-mist); }
+.login-form .err-sum { color: #1f1f1f; }
+.side-foot { display: flex; flex-direction: column; gap: var(--s2); font-size: var(--fs-sm); color: var(--side-muted); margin-top: auto; }
+.side-foot .who-am-i { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand b { font-family: var(--font-display); font-weight: var(--fw-display); font-size: var(--fs-lg); display: block; }
+.brand-txt { display: block; }
+.brand-txt > span { display: block; font-size: 12px; color: var(--side-muted); }
+.nav { display: flex; flex-direction: column; gap: var(--s1); }
+.nav button { --od-icon-size: 20px; display: flex; align-items: center; gap: var(--s3); min-height: 44px; padding: 0 var(--s3); border: 0; border-radius: var(--r); background: transparent; color: var(--side-muted); cursor: pointer; text-align: left; font-weight: 700; transition: background var(--dur) ease-out, color var(--dur) ease-out; }
+.nav button:hover { background: var(--side-active-bg); color: var(--side-text); }
+.nav button:focus-visible, .brand:focus-visible { outline-color: var(--brand-gold); }
+.nav button[aria-current="page"] { background: var(--side-active-bg); color: var(--side-active-text); }
+.nav .count { margin-left: auto; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--side-active-bg); color: var(--side-muted); }
+.nav .count.alert { background: var(--danger); color: var(--danger-ink); }
+.side-foot { margin-top: auto; font-size: 12px; color: var(--side-muted); }
+.main { padding: var(--s5) var(--s6) var(--s7); min-width: 0; }
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s4); margin-bottom: var(--s5); }
+.page-head p { color: var(--muted); margin-top: var(--s1); }
+.demo-banner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); background: var(--surface-2); border: 1px dashed var(--border); border-radius: var(--r); padding: var(--s2) var(--s4); font-size: var(--fs-sm); color: var(--muted); margin-bottom: var(--s4); }
+
+/* ===== Controls ===== */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-height: 40px; padding: 0 var(--s4); border-radius: var(--r); border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 600; cursor: pointer; --od-icon-size: 18px; transition: background var(--dur) ease-out, border-color var(--dur) ease-out; white-space: nowrap; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-ink); }
+.btn.danger { color: var(--danger); }
+.btn.sm { min-height: 32px; padding: 0 var(--s3); font-size: var(--fs-sm); }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.icon-btn { --od-icon-size: 20px; min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; border: 0; background: transparent; border-radius: var(--r); cursor: pointer; color: var(--muted); }
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
+label, .lbl { font-size: var(--fs-sm); font-weight: 600; }
+.req::after { content: " *"; color: var(--danger); }
+input[type=text], input[type=email], input[type=password], input[type=tel], input[type=number], input[type=date], input[type=search], select, textarea {
+  width: 100%; min-height: 40px; padding: var(--s2) var(--s3); border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--text);
+}
+textarea { min-height: 88px; resize: vertical; }
+input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--danger); }
+.err { color: var(--danger); font-size: var(--fs-sm); }
+.err-sum { border: 1px solid var(--danger); border-radius: var(--r); padding: var(--s3) var(--s4); color: var(--danger); font-size: var(--fs-sm); }
+.err-sum a { color: inherit; font-weight: 700; }
+.field-help { font-size: 12px; color: var(--muted); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 99px; font-size: 13px; font-weight: 600; background: color-mix(in srgb, var(--c, var(--muted)) 14%, var(--surface)); color: var(--c, var(--muted)); border: 1px solid color-mix(in srgb, var(--c, var(--muted)) 35%, var(--surface)); white-space: nowrap; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: currentColor; }
+.chip.plain { --c: var(--muted); }
+.chip.plain::before { display: none; }
+.st-novo { --c: var(--st-novo); } .st-qualificacao { --c: var(--st-qualificacao); } .st-reuniao { --c: var(--st-reuniao); }
+.st-proposta { --c: var(--st-proposta); } .st-negociacao { --c: var(--st-negociacao); } .st-ganho { --c: var(--st-ganho); } .st-perdido { --c: var(--st-perdido); }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-text); font-size: 12px; font-weight: 700; display: inline-grid; place-items: center; flex: none; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: var(--s4); box-shadow: var(--shadow); }
+.card h2 { margin-bottom: var(--s3); }
+.empty { text-align: center; padding: var(--s6) var(--s4); color: var(--muted); border: 1px dashed var(--border); border-radius: var(--r); }
+.empty b { display: block; color: var(--text); margin-bottom: var(--s1); }
+
+/* ===== Dashboard ===== */
+.kpis { --od-cols: 4; --od-gap: 16px; margin-bottom: var(--s5); }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: var(--s4); box-shadow: var(--shadow); --od-gap: 4px; }
+.kpi .v { font-family: var(--font-display); font-size: clamp(22px, 3vw, 30px); line-height: 1.1; white-space: nowrap; }
+.kpi .t { font-size: var(--fs-sm); color: var(--muted); }
+.kpi .n { font-size: 12px; color: var(--muted); }
+.dash-grid { --od-cols: 2; --od-gap: 16px; }
+.bar-row { display: grid; grid-template-columns: 130px minmax(0,1fr) 40px; gap: var(--s3); align-items: center; font-size: var(--fs-sm); padding: 6px 0; }
+.bar-track { background: var(--surface-2); border-radius: 4px; height: 14px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--c, var(--accent)); border-radius: 4px; }
+.mini-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.mini-list li { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--border); }
+.mini-list li:last-child { border-bottom: 0; }
+.link-btn { background: none; border: 0; padding: 0; cursor: pointer; color: var(--text); font-weight: 600; text-align: left; }
+.link-btn:hover { text-decoration: underline; }
+
+/* ===== Toolbar / filters ===== */
+.toolbar { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: flex-end; margin-bottom: var(--s4); }
+.toolbar .od-field { min-width: 150px; }
+.toolbar .grow { flex: 1 1 220px; }
+
+/* ===== Kanban ===== */
+.board { display: grid; grid-auto-flow: column; grid-auto-columns: 288px; gap: var(--s3); overflow-x: auto; padding-bottom: var(--s3); align-items: start; scroll-snap-type: x proximity; }
+.col { background: var(--surface-2); border-radius: var(--r); padding: var(--s2); min-height: 200px; border: 2px solid transparent; scroll-snap-align: start; }
+.col.over { border-color: var(--accent); background: var(--accent-soft); }
+.col-head { display: flex; flex-direction: column; gap: 2px; padding: var(--s2) var(--s2) var(--s3); }
+.col-head .row1 { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }
+.col-head b { font-size: var(--fs-sm); color: var(--c); }
+.col-head .sum { font-size: 12px; color: var(--muted); }
+.col-body { display: flex; flex-direction: column; gap: var(--s2); min-height: 60px; }
+.kcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: var(--s3); display: flex; flex-direction: column; gap: var(--s2); cursor: grab; box-shadow: var(--shadow); transition: transform var(--dur) ease-out, border-color var(--dur) ease-out; }
+.kcard:hover { border-color: var(--accent); }
+.kcard.dragging { opacity: .45; }
+.kcard .nm { font-weight: 700; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; width: 100%; }
+.kcard .nm:hover { text-decoration: underline; }
+.kcard select { min-height: 32px; font-size: 13px; padding: 2px 6px; }
+.kcard .val { font-weight: 700; white-space: nowrap; }
+.col-empty { font-size: 13px; color: var(--muted); text-align: center; padding: var(--s4) var(--s2); border: 1px dashed var(--border); border-radius: var(--r-sm); }
+
+/* ===== Lists ===== */
+.list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); }
+.lrow { display: grid; grid-template-columns: minmax(0,2.2fr) minmax(0,1.3fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.3fr) 96px; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); border-bottom: 1px solid var(--border); }
+.lrow:last-child { border-bottom: 0; }
+.lrow.head { background: var(--surface-2); font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.lrow .who b { display: block; }
+.lrow .actions { display: flex; justify-content: flex-end; }
+
+/* ===== Tasks ===== */
+.task { display: flex; align-items: flex-start; gap: var(--s3); padding: var(--s3) 0; border-bottom: 1px solid var(--border); }
+.task:last-child { border-bottom: 0; }
+.task input[type=checkbox] { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); flex: none; }
+.task.done .tt { text-decoration: line-through; color: var(--muted); }
+.due-late { color: var(--danger); font-weight: 700; }
+.due-today { color: var(--warn); font-weight: 700; }
+.group-title { margin: var(--s5) 0 var(--s2); font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+/* ===== Integration ===== */
+.int-grid { --od-cols: 2; --od-gap: 16px; align-items: start; }
+pre { margin: 0; padding: var(--s4); background: var(--brand-ink); color: var(--brand-mist); border-radius: var(--r); overflow-x: auto; font-size: 13px; line-height: 1.6; font-family: Consolas, "Cascadia Mono", monospace; }
+.kv { display: flex; align-items: center; gap: var(--s2); }
+.kv code { flex: 1; min-width: 0; padding: var(--s2) var(--s3); background: var(--surface-2); border-radius: var(--r-sm); font-family: Consolas, "Cascadia Mono", monospace; font-size: 13px; overflow-x: auto; white-space: nowrap; }
+.tabs { display: flex; gap: var(--s1); border-bottom: 1px solid var(--border); margin-bottom: var(--s3); }
+.tabs button { min-height: 40px; padding: 0 var(--s4); border: 0; background: none; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--accent-text); border-bottom-color: var(--accent); }
+.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: var(--s2); }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--s3); }
+.form-grid .full { grid-column: 1 / -1; }
+
+/* ===== Dialogs ===== */
+dialog { border: 1px solid var(--border); border-radius: var(--r); padding: 0; background: var(--surface); color: var(--text); width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 32px); box-shadow: 0 20px 50px rgba(0,0,0,.28); }
+dialog::backdrop { background: rgba(10, 16, 20, .55); }
+.dlg-in { display: flex; flex-direction: column; max-height: calc(100vh - 34px); }
+.dlg-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s4) var(--s5); border-bottom: 1px solid var(--border); }
+.dlg-body { padding: var(--s4) var(--s5); overflow-y: auto; display: flex; flex-direction: column; gap: var(--s4); }
+.dlg-foot { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--s2); padding: var(--s3) var(--s5); border-top: 1px solid var(--border); }
+dialog.drawer { margin: 0 0 0 auto; height: 100vh; max-height: 100vh; width: min(640px, 100vw); border-radius: 0; border-width: 0 0 0 1px; }
+dialog.drawer .dlg-in { height: 100vh; max-height: 100vh; }
+.stepper { display: flex; gap: var(--s1); flex-wrap: wrap; }
+.stepper button { min-height: 36px; padding: 0 var(--s3); border-radius: 99px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; font-weight: 600; cursor: pointer; color: var(--muted); }
+.stepper button:hover { border-color: var(--c); color: var(--c); }
+.stepper button[aria-pressed="true"] { background: color-mix(in srgb, var(--c) 16%, var(--surface)); border-color: var(--c); color: var(--c); }
+.info-grid { --od-cols: 2; --od-gap: 12px; }
+.sec h3 { margin-bottom: var(--s2); font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.note { padding: var(--s3); background: var(--surface-2); border-radius: var(--r-sm); font-size: var(--fs-sm); }
+.note small { display: block; color: var(--muted); margin-top: 4px; }
+.timeline { list-style: none; margin: 0; padding: 0 0 0 var(--s4); border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: var(--s3); }
+.timeline li { font-size: var(--fs-sm); }
+.timeline time { display: block; font-size: 12px; color: var(--muted); }
+
+.toasts { position: fixed; right: var(--s4); bottom: var(--s4); display: flex; flex-direction: column; gap: var(--s2); z-index: 50; max-width: calc(100vw - 32px); }
+.toast { background: var(--text); color: var(--bg); padding: var(--s3) var(--s4); border-radius: var(--r); font-size: var(--fs-sm); font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.25); animation: tin var(--dur) ease-out; display: flex; gap: var(--s3); align-items: center; }
+.toast button { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; font-weight: 700; padding: 0; }
+@keyframes tin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.skel { height: 14px; border-radius: 4px; background: var(--surface-2); }
+
+/* ===== Responsive ===== */
+@media (max-width: 1100px) {
+  .kpis { --od-cols: 2; }
+  .dash-grid, .int-grid { --od-cols: 1; }
+}
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; height: auto; flex-direction: row; align-items: center; padding: var(--s2) var(--s3); gap: var(--s3); border-right: 0; border-bottom: 1px solid var(--border); }
+  .brand span, .side-foot { display: none; }
+  .nav { flex-direction: row; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
+  .nav button { flex: none; }
+  .nav .count { margin-left: 4px; }
+  .main { padding: var(--s4) var(--s4) var(--s6); }
+  .lrow { grid-template-columns: minmax(0,1fr) auto; row-gap: var(--s1); }
+  .lrow.head { display: none; }
+  .lrow > * { grid-column: 1 / -1; }
+  .lrow > .who { grid-column: 1; }
+  .lrow > .actions { grid-column: 2; grid-row: 1; }
+  .form-grid { grid-template-columns: minmax(0,1fr); }
+  .info-grid { --od-cols: 1; }
+  .bar-row { grid-template-columns: 96px minmax(0,1fr) 32px; }
+}
+@media (max-width: 480px) {
+  .kpis { --od-cols: 1; }
+  .board { grid-auto-columns: 84vw; }
+  .page-head .btn { flex: 1 1 auto; }
+  dialog.drawer { width: 100vw; }
+  .dlg-head, .dlg-body, .dlg-foot { padding-inline: var(--s4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<section class="start" id="start" aria-labelledby="startTitle">
+  <div class="start-in">
+    <img class="start-logo" src="assets/logo-iw.svg" alt="Logotipo IW" width="1649" height="964">
+    <div class="od-stack" style="--od-gap:8px;align-items:center">
+      <h1 id="startTitle">Funil CRM</h1>
+      <p>Do primeiro contato do lead ao cliente fechado, em um só lugar.</p>
+    </div>
+    <form id="loginForm" class="login-form" novalidate>
+      <div class="od-field"><label for="lg-email">E-mail</label><input id="lg-email" name="email" type="email" autocomplete="username" required></div>
+      <div class="od-field"><label for="lg-pass">Senha</label><input id="lg-pass" name="password" type="password" autocomplete="current-password" required></div>
+      <div class="err-sum" id="loginErr" hidden role="alert"></div>
+      <button class="start-btn" type="submit" id="loginBtn">Entrar no CRM</button>
+    </form>
+    <p class="start-note" id="startNote">Acesso restrito à equipe.</p>
+  </div>
+</section>
+<div class="app" hidden>
+  <aside class="side">
+    <button class="brand" type="button" data-action="nav" data-view="dashboard" aria-label="Funil CRM — ir para o Painel">
+      <img class="brand-logo" src="assets/logo-iw.svg" alt="" width="1649" height="964">
+      <span class="brand-txt"><b>Funil CRM</b><span>Do lead ao cliente</span></span>
+    </button>
+    <nav class="nav" id="nav" aria-label="Principal"></nav>
+    <div class="side-foot"><span class="who-am-i" id="whoAmI"></span><button class="btn sm" type="button" data-action="logout">Sair</button></div>
+  </aside>
+  <main class="main" id="main" tabindex="-1"><div id="view"></div></main>
+</div>
+
+<dialog id="leadDlg" class="drawer" aria-labelledby="leadTitle"></dialog>
+<dialog id="formDlg" aria-labelledby="formTitle"></dialog>
+<dialog id="taskDlg" aria-labelledby="taskTitle"></dialog>
+<dialog id="lossDlg" aria-labelledby="lossTitle"></dialog>
+<dialog id="confirmDlg" aria-labelledby="confTitle"></dialog>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+'use strict';
+
+/* ===== Constantes ===== */
+const CFG = window.CRM_CONFIG || {};
+const STAGES = [
+  { id: 'novo', nome: 'Novo lead' },
+  { id: 'qualificacao', nome: 'Qualificação' },
+  { id: 'reuniao', nome: 'Reunião' },
+  { id: 'proposta', nome: 'Proposta' },
+  { id: 'negociacao', nome: 'Negociação' },
+  { id: 'ganho', nome: 'Cliente' },
+  { id: 'perdido', nome: 'Perdido' }
+];
+const ORIGENS = ['Site – formulário', 'Google Ads', 'Meta Ads', 'Instagram', 'Indicação', 'WhatsApp', 'SEO / Orgânico', 'Outro'];
+const SERVICOS = ['Gestão de tráfego', 'Social media', 'SEO', 'Site / Landing page', 'Branding', 'Marketing completo'];
+const MOTIVOS = ['Preço acima do orçamento', 'Escolheu outra agência', 'Sem resposta', 'Sem fit com o serviço', 'Adiou a decisão', 'Outro'];
+const SITE_ORIGEM = 'Site – formulário';
+const KEY = 'funil-crm-v1';
+
+const ICONS = {
+  grid: '<rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>',
+  funnel: '<path d="M3 4h18l-7 8v6l-4 2v-8z"/>',
+  kanban: '<rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="10" rx="1"/><rect x="17" y="4" width="4" height="13" rx="1"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.3c2.2.7 3.5 2.6 3.5 5.7"/>',
+  badge: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  tasks: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/>',
+  plug: '<path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0zM12 18v3"/>',
+  settings: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
+  phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  send: '<path d="M4 12 20 4l-4 16-4-6z"/>',
+  eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
+};
+const icon = (n) => `<svg class="od-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+
+/* ===== Utilidades ===== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const brl = (n) => (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const initials = (n) => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('');
+const pad = (n) => String(n).padStart(2, '0');
+const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const todayStr = () => isoDay(new Date());
+const addDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d; };
+const fmtDT = (iso) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+const fmtD = (iso) => { const d = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso); return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }); };
+const stage = (id) => STAGES.find((s) => s.id === id) || STAGES[0];
+const stageChip = (id) => `<span class="chip st-${id}">${esc(stage(id).nome)}</span>`;
+const isOpen = (l) => l.etapa !== 'ganho' && l.etapa !== 'perdido';
+const nowISO = () => new Date().toISOString();
+
+/* ===== Estado e persistência (Supabase) ===== */
+const sb = (CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase) ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
+function genKey() { const b = new Uint8Array(12); crypto.getRandomValues(b); return 'fnl_live_' + Array.from(b, (x) => x.toString(16).padStart(2, '0')).join(''); }
+
+const leadToRow = (l) => ({ id: l.id, nome: l.nome, empresa: l.empresa || '', email: l.email || '', telefone: l.telefone || '', origem: l.origem, servico: l.servico, valor: +l.valor || 0, etapa: l.etapa, resp: l.resp || '', criado: l.criado, utm: l.utm || {}, notas: l.notas || [], hist: l.hist || [], exemplo: !!l.exemplo, ganho_em: l.ganhoEm || null, perda: l.perda || null });
+const leadFromRow = (r) => { const l = { id: r.id, nome: r.nome, empresa: r.empresa || '', email: r.email || '', telefone: r.telefone || '', origem: r.origem, servico: r.servico, valor: Number(r.valor) || 0, etapa: r.etapa, resp: r.resp || '', criado: r.criado, utm: r.utm || {}, notas: r.notas || [], hist: r.hist || [] }; if (r.exemplo) l.exemplo = true; if (r.ganho_em) l.ganhoEm = r.ganho_em; if (r.perda) l.perda = r.perda; return l; };
+const taskToRow = (t) => ({ id: t.id, lead_id: t.leadId, titulo: t.titulo, venc: t.venc, resp: t.resp || '', feito: !!t.feito, status: t.status || null });
+const taskFromRow = (r) => { const t = { id: r.id, leadId: r.lead_id, titulo: r.titulo, venc: r.venc, resp: r.resp || '', feito: !!r.feito }; if (r.status) t.status = r.status; return t; };
+
+const state = {
+  data: { leads: [], tasks: [], team: [], apiKey: '' },
+  view: 'dashboard',
+  filters: { q: '', etapa: '', origem: '', resp: '' },
+  limit: 50,
+  openLead: null,
+  tab: 'html'
+};
+let synced = { leads: new Map(), tasks: new Map(), team: new Set(), apiKey: '' };
+let pending = 0; let lastWriteEnd = 0; let chain = Promise.resolve(); let saveWarned = false;
+
+async function must(p) { const { error } = await p; if (error) throw error; }
+async function loadAll() {
+  const [lr, tr, mr, sr] = await Promise.all([
+    sb.from('leads').select('*').order('criado', { ascending: false }),
+    sb.from('tasks').select('*').order('venc', { ascending: true }),
+    sb.from('team').select('name').order('created_at', { ascending: true }),
+    sb.from('settings').select('api_key').eq('id', 1).maybeSingle()
+  ]);
+  for (const r of [lr, tr, mr, sr]) if (r.error) throw r.error;
+  state.data = { leads: lr.data.map(leadFromRow), tasks: tr.data.map(taskFromRow), team: mr.data.map((m) => m.name), apiKey: sr.data ? sr.data.api_key : '' };
+  synced = { leads: new Map(state.data.leads.map((l) => [l.id, JSON.stringify(leadToRow(l))])), tasks: new Map(state.data.tasks.map((t) => [t.id, JSON.stringify(taskToRow(t))])), team: new Set(state.data.team), apiKey: state.data.apiKey };
+}
+async function syncUp() {
+  const d = state.data;
+  const curL = new Map(d.leads.map((l) => [l.id, JSON.stringify(leadToRow(l))]));
+  const curT = new Map(d.tasks.map((t) => [t.id, JSON.stringify(taskToRow(t))]));
+  const curM = new Set(d.team);
+  const upL = d.leads.filter((l) => synced.leads.get(l.id) !== curL.get(l.id)).map(leadToRow);
+  const upT = d.tasks.filter((t) => synced.tasks.get(t.id) !== curT.get(t.id)).map(taskToRow);
+  const delT = [...synced.tasks.keys()].filter((id) => !curT.has(id));
+  const delL = [...synced.leads.keys()].filter((id) => !curL.has(id));
+  const addM = [...curM].filter((n) => !synced.team.has(n));
+  const delM = [...synced.team].filter((n) => !curM.has(n));
+  if (delT.length) await must(sb.from('tasks').delete().in('id', delT));
+  if (delL.length) await must(sb.from('leads').delete().in('id', delL));
+  if (upL.length) await must(sb.from('leads').upsert(upL));
+  if (upT.length) await must(sb.from('tasks').upsert(upT));
+  if (addM.length) await must(sb.from('team').upsert(addM.map((name) => ({ name })), { onConflict: 'name' }));
+  if (delM.length) await must(sb.from('team').delete().in('name', delM));
+  if (d.apiKey && d.apiKey !== synced.apiKey) await must(sb.from('settings').update({ api_key: d.apiKey }).eq('id', 1));
+  synced = { leads: curL, tasks: curT, team: curM, apiKey: d.apiKey };
+}
+function save() {
+  if (!sb) return;
+  pending += 1;
+  chain = chain.then(syncUp).then(() => { saveWarned = false; }).catch((err) => {
+    console.error('Falha ao salvar', err);
+    if (!saveWarned) { saveWarned = true; toast('Não foi possível salvar no servidor. Verifique a conexão e tente de novo.'); }
+    return loadAll().then(render).catch(() => {});
+  }).finally(() => { pending -= 1; lastWriteEnd = Date.now(); });
+}
+const D = () => state.data;
+const leadById = (id) => D().leads.find((l) => l.id === id);
+
+/* ===== Regras de negócio ===== */
+function log(lead, txt) { lead.hist.unshift({ t: nowISO(), txt }); }
+function moveLead(id, to, motivo) {
+  const l = leadById(id); if (!l || l.etapa === to) return;
+  const from = l.etapa;
+  l.etapa = to;
+  if (to === 'ganho') { l.ganhoEm = nowISO(); log(l, 'Convertido em cliente 🎉'.replace(' 🎉', '')); }
+  else if (to === 'perdido') { l.perda = motivo || 'Não informado'; log(l, 'Marcado como perdido — ' + l.perda); }
+  else { log(l, `Etapa alterada: ${stage(from).nome} → ${stage(to).nome}`); if (from === 'perdido') delete l.perda; }
+  save(); render();
+  toast(to === 'ganho' ? `${l.nome} agora é cliente` : `${l.nome} movido para ${stage(to).nome}`);
+}
+function filtered(list) {
+  const f = state.filters; const q = f.q.trim().toLowerCase();
+  return list.filter((l) =>
+    (!f.etapa || l.etapa === f.etapa) && (!f.origem || l.origem === f.origem) && (!f.resp || l.resp === f.resp) &&
+    (!q || [l.nome, l.empresa, l.email, l.telefone].join(' ').toLowerCase().includes(q)));
+}
+const overdue = () => D().tasks.filter((t) => !t.feito && t.venc < todayStr());
+
+/* ===== Toast, foco, diálogos ===== */
+function toast(msg, actionLabel, fn) {
+  const el = document.createElement('div'); el.className = 'toast';
+  const s = document.createElement('span'); s.textContent = msg; el.appendChild(s);
+  if (actionLabel) { const b = document.createElement('button'); b.type = 'button'; b.textContent = actionLabel; b.addEventListener('click', () => { fn && fn(); el.remove(); }); el.appendChild(b); }
+  $('#toasts').appendChild(el); setTimeout(() => el.remove(), 5000);
+}
+const lastTrigger = new WeakMap();
+function openDlg(dlg, trigger) {
+  lastTrigger.set(dlg, trigger || document.activeElement);
+  if (!dlg.open) dlg.showModal();
+}
+function closeDlg(dlg) { if (dlg.open) dlg.close(); }
+function restoreFocus(dlg) {
+  const t = lastTrigger.get(dlg);
+  const id = t && t.dataset && t.dataset.focusKey;
+  let target = t && t.isConnected ? t : null;
+  if (!target && id) target = $(`[data-focus-key="${id}"]`);
+  if (!target) target = $('#main h1') || $('#main');
+  if (target) { if (!target.hasAttribute('tabindex') && !/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) target.setAttribute('tabindex', '-1'); target.focus(); }
+}
+['leadDlg', 'formDlg', 'taskDlg', 'lossDlg', 'confirmDlg'].forEach((id) => {
+  const d = document.getElementById(id);
+  d.addEventListener('close', () => { if (id === 'leadDlg') state.openLead = null; restoreFocus(d); });
+  d.addEventListener('click', (e) => { if (e.target === d) closeDlg(d); });
+});
+function confirmBox(title, msg, okLabel, fn, trigger) {
+  const d = $('#confirmDlg');
+  d.innerHTML = `<div class="dlg-in"><div class="dlg-head"><h2 id="confTitle">${esc(title)}</h2></div>
+    <div class="dlg-body"><p>${esc(msg)}</p></div>
+    <div class="dlg-foot"><button class="btn" type="button" data-action="close-dlg" data-dlg="confirmDlg">Cancelar</button>
+    <button class="btn primary" type="button" id="confOk">${esc(okLabel)}</button></div></div>`;
+  openDlg(d, trigger);
+  $('#confOk').addEventListener('click', () => { closeDlg(d); fn(); });
+  $('#confOk').focus();
+}
+
+/* ===== Navegação ===== */
+const NAV = [
+  ['dashboard', 'Painel', 'grid'], ['funil', 'Funil', 'funnel'], ['kanban', 'Kanban', 'kanban'], ['leads', 'Leads', 'users'],
+  ['clientes', 'Clientes', 'badge'], ['tarefas', 'Tarefas', 'tasks'], ['integracao', 'Integração', 'plug'], ['config', 'Ajustes', 'settings']
+];
+function renderNav() {
+  const late = overdue().length;
+  $('#nav').innerHTML = NAV.map(([id, nome, ic]) => {
+    const count = id === 'tarefas' && late ? `<span class="count alert" aria-label="${late} atrasadas">${late}</span>` :
+      id === 'leads' ? `<span class="count">${D().leads.filter(isOpen).length}</span>` : '';
+    return `<button type="button" data-action="nav" data-view="${id}" ${state.view === id ? 'aria-current="page"' : ''}>${icon(ic)}<span>${nome}</span>${count}</button>`;
+  }).join('');
+}
+function setView(v) {
+  state.view = v; state.limit = 50; render();
+  const h = $('#view h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
+  window.scrollTo(0, 0);
+}
+
+/* ===== Views ===== */
+function banner() {
+  return D().leads.some((l) => l.exemplo) ? `<div class="demo-banner"><span><b>Dados de exemplo.</b> Os leads e clientes abaixo são fictícios, para você testar o fluxo.</span><button class="btn sm" type="button" data-action="clear-demo">Remover dados de exemplo</button></div>` : '';
+}
+function head(title, sub, actions) {
+  return `<div class="page-head"><div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div><div class="od-cluster">${actions || ''}</div></div>`;
+}
+const newLeadBtn = `<button class="btn primary" type="button" data-action="new-lead">${icon('plus')}Novo lead</button>`;
+
+function renderDashboard() {
+  const leads = D().leads; const abertos = leads.filter(isOpen); const ganhos = leads.filter((l) => l.etapa === 'ganho');
+  const sete = Date.now() - 7 * 864e5;
+  const novos7 = leads.filter((l) => new Date(l.criado).getTime() >= sete).length;
+  const pipeline = abertos.reduce((s, l) => s + (+l.valor || 0), 0);
+  const mrr = ganhos.reduce((s, l) => s + (+l.valor || 0), 0);
+  const conv = leads.length ? Math.round((ganhos.length / leads.length) * 100) : 0;
+  const kpi = (t, v, n) => `<div class="kpi od-stat"><span class="t">${t}</span><span class="v">${v}</span><span class="n">${n}</span></div>`;
+  const origemCount = ORIGENS.map((o) => [o, leads.filter((l) => l.origem === o).length]).filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1]);
+  const maxO = Math.max(1, ...origemCount.map((x) => x[1]));
+  const origemHtml = origemCount.length ? origemCount.map(([o, n]) => `<div class="bar-row"><span class="od-truncate">${esc(o)}</span><div class="bar-track"><div class="bar-fill" style="width:${(n / maxO) * 100}%"></div></div><b>${n}</b></div>`).join('') : '<div class="empty"><b>Sem leads ainda</b>Cadastre um lead ou conecte seu site.</div>';
+  const funnelStages = STAGES.filter((s) => s.id !== 'perdido');
+  const maxS = Math.max(1, ...funnelStages.map((s) => leads.filter((l) => l.etapa === s.id).length));
+  const funnelHtml = funnelStages.map((s) => { const n = leads.filter((l) => l.etapa === s.id).length; return `<div class="bar-row st-${s.id}"><span>${s.nome}</span><div class="bar-track"><div class="bar-fill" style="width:${(n / maxS) * 100}%"></div></div><b>${n}</b></div>`; }).join('');
+  const hoje = D().tasks.filter((t) => !t.feito && t.venc <= todayStr()).sort((a, b) => a.venc.localeCompare(b.venc)).slice(0, 5);
+  const recent = leads.slice().sort((a, b) => b.criado.localeCompare(a.criado)).slice(0, 5);
+  return `${head('Painel', 'Resumo do funil de vendas da agência')}${banner()}
+  <div class="kpis od-grid" role="list">
+    ${kpi('Leads em andamento', abertos.length, `${novos7} novos nos últimos 7 dias`)}
+    ${kpi('Valor no funil', brl(pipeline), 'Soma mensal estimada dos abertos')}
+    ${kpi('Clientes ganhos', ganhos.length, `Receita mensal ${brl(mrr)}`)}
+    ${kpi('Taxa de conversão', conv + '%', 'Clientes ÷ todos os leads')}
+  </div>
+  <div class="dash-grid od-grid">
+    <section class="card" aria-labelledby="h-fun"><h2 id="h-fun">Leads por etapa</h2>${funnelHtml}</section>
+    <section class="card" aria-labelledby="h-ori"><h2 id="h-ori">Leads por origem</h2>${origemHtml}</section>
+    <section class="card" aria-labelledby="h-tar"><h2 id="h-tar">Tarefas para hoje e atrasadas</h2>
+      ${hoje.length ? `<ul class="mini-list">${hoje.map((t) => { const l = leadById(t.leadId); return `<li><div class="od-fill"><b class="od-truncate">${esc(t.titulo)}</b><span class="small muted">${l ? esc(l.nome) : ''} · <span class="${t.venc < todayStr() ? 'due-late' : 'due-today'}">${t.venc < todayStr() ? 'Atrasada · ' : 'Hoje · '}${fmtD(t.venc)}</span></span></div><button class="btn sm" type="button" data-action="toggle-task" data-id="${t.id}">Concluir</button></li>`; }).join('')}</ul>` : '<div class="empty"><b>Tudo em dia</b>Nenhuma tarefa para hoje.</div>'}
+    </section>
+    <section class="card" aria-labelledby="h-rec"><h2 id="h-rec">Últimos leads</h2>
+      ${recent.length ? `<ul class="mini-list">${recent.map((l) => `<li><span class="avatar" aria-hidden="true">${initials(l.nome)}</span><div class="od-fill"><button class="link-btn od-truncate" type="button" data-action="open-lead" data-id="${l.id}" data-focus-key="dash-${l.id}">${esc(l.nome)}</button><span class="small muted od-truncate">${esc(l.empresa)} · ${esc(l.origem)}</span></div>${stageChip(l.etapa)}</li>`).join('')}</ul>` : '<div class="empty"><b>Nenhum lead</b>Os leads aparecerão aqui.</div>'}
+    </section>
+  </div>`;
+}
+
+function filterBar(withStage) {
+  const f = state.filters;
+  const opt = (arr, cur, all) => `<option value="">${all}</option>` + arr.map((v) => `<option value="${esc(v.id || v)}" ${(v.id || v) === cur ? 'selected' : ''}>${esc(v.nome || v)}</option>`).join('');
+  return `<div class="toolbar" role="search">
+    <div class="od-field grow"><label for="f-q">Buscar</label><input id="f-q" type="search" data-filter="q" value="${esc(f.q)}" placeholder="Nome, empresa, e-mail ou telefone" autocomplete="off"></div>
+    ${withStage ? `<div class="od-field"><label for="f-e">Etapa</label><select id="f-e" data-filter="etapa">${opt(STAGES, f.etapa, 'Todas')}</select></div>` : ''}
+    <div class="od-field"><label for="f-o">Origem</label><select id="f-o" data-filter="origem">${opt(ORIGENS, f.origem, 'Todas')}</select></div>
+    <div class="od-field"><label for="f-r">Responsável</label><select id="f-r" data-filter="resp">${opt(D().team, f.resp, 'Todos')}</select></div>
+    <button class="btn" type="button" data-action="clear-filters">Limpar filtros</button></div>`;
+}
+
+function renderFunil() {
+  const list = filtered(D().leads);
+  const cols = STAGES.map((s) => {
+    const items = list.filter((l) => l.etapa === s.id);
+    const sum = items.reduce((a, l) => a + (+l.valor || 0), 0);
+    const cards = items.map((l) => `<div class="kcard" draggable="true" data-id="${l.id}">
+      <div class="od-row-top"><div class="od-fill"><button class="nm od-truncate" type="button" data-action="open-lead" data-id="${l.id}" data-focus-key="k-${l.id}">${esc(l.nome)}</button><span class="small muted od-truncate">${esc(l.empresa) || '—'}</span></div><span class="val od-nowrap">${l.valor ? brl(l.valor) : '—'}</span></div>
+      <div class="od-cluster"><span class="chip plain">${esc(l.origem)}</span></div>
+      <div class="od-row"><span class="avatar" title="${esc(l.resp)}" aria-hidden="true">${initials(l.resp)}</span><span class="small muted od-fill od-truncate">${esc(l.resp) || 'Sem responsável'}</span>
+      <select aria-label="Mover ${esc(l.nome)} para outra etapa" data-move="${l.id}" data-focus-key="m-${l.id}" style="width:auto;max-width:120px">${STAGES.map((x) => `<option value="${x.id}" ${x.id === l.etapa ? 'selected' : ''}>${esc(x.nome)}</option>`).join('')}</select></div></div>`).join('');
+    return `<section class="col st-${s.id}" data-col="${s.id}" aria-label="${esc(s.nome)}"><div class="col-head"><div class="row1"><b>${esc(s.nome)}</b><span class="chip plain">${items.length}</span></div><span class="sum">${s.id === 'perdido' ? 'Não entra no funil' : brl(sum) + (s.id === 'ganho' ? ' / mês' : '')}</span></div>
+      <div class="col-body">${cards || '<div class="col-empty">Arraste um lead para cá</div>'}</div></section>`;
+  }).join('');
+  return `${head('Funil de vendas', 'Arraste os cards entre as etapas ou use o seletor de cada card.', newLeadBtn)}${banner()}${filterBar(false)}<div class="board" id="board">${cols}</div>`;
+}
+
+function leadRows(list, mode) {
+  if (!list.length) return `<div class="empty"><b>${mode === 'clientes' ? 'Nenhum cliente ainda' : 'Nenhum lead encontrado'}</b>${mode === 'clientes' ? 'Quando um lead fechar contrato, mova para “Cliente” e ele aparece aqui.' : 'Ajuste os filtros ou cadastre um novo lead.'}</div>`;
+  const shown = list.slice(0, state.limit);
+  const header = `<div class="lrow head" role="row"><span>${mode === 'clientes' ? 'Cliente' : 'Lead'}</span><span>${mode === 'clientes' ? 'Serviço' : 'Etapa'}</span><span>Origem</span><span>${mode === 'clientes' ? 'Mensalidade' : 'Valor'}</span><span>Responsável</span><span></span></div>`;
+  const rows = shown.map((l) => `<div class="lrow"><div class="who"><b class="od-truncate">${esc(l.nome)}</b><span class="small muted od-truncate">${esc(l.empresa) || esc(l.email)}</span></div>
+    <div>${mode === 'clientes' ? `<span class="small">${esc(l.servico)}</span>` : stageChip(l.etapa)}</div><div class="small">${esc(l.origem)}</div>
+    <div class="od-nowrap"><b>${l.valor ? brl(l.valor) : '—'}</b></div><div class="od-row"><span class="avatar" aria-hidden="true">${initials(l.resp)}</span><span class="small od-truncate">${esc(l.resp) || '—'}</span></div>
+    <div class="actions"><button class="btn sm" type="button" data-action="open-lead" data-id="${l.id}" data-focus-key="r-${l.id}" aria-label="Abrir ${esc(l.nome)}">Abrir</button></div></div>`).join('');
+  const more = list.length > shown.length ? `<div style="padding:12px;text-align:center"><button class="btn" type="button" data-action="more">Mostrar mais (${list.length - shown.length})</button></div>` : '';
+  return `<div class="list" role="table" aria-label="${mode === 'clientes' ? 'Clientes' : 'Leads'}">${header}${rows}${more}</div>`;
+}
+function renderLeads() {
+  const list = filtered(D().leads).sort((a, b) => b.criado.localeCompare(a.criado));
+  return `${head('Leads', `${list.length} de ${D().leads.length} registros`, newLeadBtn)}${banner()}${filterBar(true)}${leadRows(list, 'leads')}`;
+}
+function renderClientes() {
+  const list = filtered(D().leads.filter((l) => l.etapa === 'ganho'));
+  const mrr = list.reduce((s, l) => s + (+l.valor || 0), 0);
+  return `${head('Clientes', `${list.length} clientes ativos · receita mensal ${brl(mrr)}`)}${banner()}${filterBar(false)}${leadRows(list, 'clientes')}`;
+}
+
+function taskItem(t) {
+  const l = leadById(t.leadId); const late = !t.feito && t.venc < todayStr(); const today = !t.feito && t.venc === todayStr();
+  return `<div class="task ${t.feito ? 'done' : ''}"><input type="checkbox" id="tk-${t.id}" data-toggle="${t.id}" ${t.feito ? 'checked' : ''} aria-label="Concluir: ${esc(t.titulo)}">
+    <div class="od-fill"><div class="tt">${esc(t.titulo)}</div><div class="small muted">${l ? `<button class="link-btn" type="button" data-action="open-lead" data-id="${l.id}" data-focus-key="t-${t.id}">${esc(l.nome)}</button> · ` : ''}${esc(t.resp) || 'Sem responsável'} · <span class="${late ? 'due-late' : today ? 'due-today' : ''}">${late ? 'Atrasada, ' : today ? 'Hoje, ' : ''}${fmtD(t.venc)}</span></div></div>
+    <button class="icon-btn" type="button" data-action="del-task" data-id="${t.id}" aria-label="Excluir tarefa">${icon('trash')}</button></div>`;
+}
+function renderTarefas() {
+  const ts = D().tasks.slice().sort((a, b) => a.venc.localeCompare(b.venc)); const td = todayStr();
+  const g = (title, arr) => arr.length ? `<h2 class="group-title">${title} (${arr.length})</h2><div class="card">${arr.map(taskItem).join('')}</div>` : '';
+  const abertas = ts.filter((t) => !t.feito);
+  const body = ts.length ? g('Atrasadas', abertas.filter((t) => t.venc < td)) + g('Hoje', abertas.filter((t) => t.venc === td)) + g('Próximas', abertas.filter((t) => t.venc > td)) + g('Concluídas', ts.filter((t) => t.feito))
+    : '<div class="empty"><b>Nenhuma tarefa</b>Crie follow-ups para não deixar nenhum lead esfriar.</div>';
+  return `${head('Tarefas', 'Follow-ups e próximos passos de cada lead', `<button class="btn primary" type="button" data-action="new-task">${icon('plus')}Nova tarefa</button>`)}${body}`;
+}
+
+/* ----- Integração ----- */
+const ENDPOINT = (CFG.SUPABASE_URL || 'https://SEU-PROJETO.supabase.co').replace(/\/$/, '') + '/functions/v1/' + (CFG.WEBHOOK_FUNCTION || 'lead-webhook');
+function snippets() {
+  const key = D().apiKey;
+  return {
+    html: `<form id="funil-form">
+  <input name="nome" placeholder="Seu nome" required>
+  <input name="email" type="email" placeholder="Seu e-mail" required>
+  <input name="telefone" placeholder="WhatsApp">
+  <input name="empresa" placeholder="Empresa">
+  <textarea name="mensagem" placeholder="Como podemos ajudar?"></textarea>
+  <button type="submit">Quero uma proposta</button>
+</form>
+<script>
+  // Captura de UTMs da URL e envio para o Funil CRM
+  const p = new URLSearchParams(location.search);
+  document.getElementById('funil-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const dados = Object.fromEntries(new FormData(e.target));
+    dados.utm_source = p.get('utm_source') || '';
+    dados.utm_medium = p.get('utm_medium') || '';
+    dados.utm_campaign = p.get('utm_campaign') || '';
+    dados.pagina = location.href;
+    await fetch('${ENDPOINT}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${key}' },
+      body: JSON.stringify(dados)
+    });
+    e.target.reset();
+    alert('Recebemos seu contato!');
+  });
+<\/script>`,
+    js: `// Envie o lead a partir do seu próprio código (React, WordPress, Webflow...)
+await fetch('${ENDPOINT}', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ${key}'
+  },
+  body: JSON.stringify({
+    nome: 'Maria Silva',
+    email: 'maria@empresa.com.br',
+    telefone: '(11) 99999-0000',
+    empresa: 'Empresa Ltda',
+    mensagem: 'Quero saber mais sobre gestão de tráfego',
+    utm_source: 'google',
+    utm_medium: 'cpc',
+    utm_campaign: 'campanha-novembro'
+  })
+});`,
+    curl: `curl -X POST '${ENDPOINT}' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer ${key}' \\
+  -d '{"nome":"Maria Silva","email":"maria@empresa.com.br","telefone":"(11) 99999-0000","utm_source":"google"}'`
+  };
+}
+function renderIntegracao() {
+  const sn = snippets(); const tab = state.tab;
+  const tabs = [['html', 'Formulário HTML'], ['js', 'JavaScript'], ['curl', 'cURL']];
+  const siteLeads = D().leads.filter((l) => l.origem === SITE_ORIGEM).slice(0, 5);
+  const opt = (arr) => arr.map((v) => `<option>${esc(v)}</option>`).join('');
+  return `${head('Integração com o site', 'Receba os leads do formulário do seu site direto na etapa “Novo lead”.')}
+  <div class="int-grid od-grid">
+    <div class="od-stack" style="--od-gap:16px">
+      <section class="card"><h2>1. Credenciais</h2>
+        <div class="od-stack" style="--od-gap:12px">
+          <div class="od-field"><span class="lbl">Endereço de recebimento (endpoint)</span><div class="kv"><code>${ENDPOINT}</code><button class="btn sm" type="button" data-action="copy" data-copy="${ENDPOINT}">${icon('copy')}Copiar</button></div><span class="field-help">Envie os leads do formulário do site para este endereço (método POST).</span></div>
+          <div class="od-field"><span class="lbl">Chave de API</span><div class="kv"><code id="keyCode">${state.showKey ? esc(D().apiKey) : D().apiKey.slice(0, 9) + '••••••••••••••••'}</code>
+            <button class="btn sm" type="button" data-action="toggle-key" aria-pressed="${!!state.showKey}">${icon('eye')}${state.showKey ? 'Ocultar' : 'Mostrar'}</button>
+            <button class="btn sm" type="button" data-action="copy" data-copy="${esc(D().apiKey)}">${icon('copy')}Copiar</button></div>
+            <span class="field-help">Use só no servidor ou em formulários que você controla. <button class="link-btn" type="button" data-action="regen-key" style="color:var(--accent-text)">Gerar nova chave</button></span></div>
+        </div></section>
+      <section class="card"><h2>2. Cole no seu site</h2>
+        <div class="tabs" role="tablist">${tabs.map(([id, n]) => `<button type="button" role="tab" data-action="tab" data-tab="${id}" aria-selected="${tab === id}">${n}</button>`).join('')}</div>
+        <pre tabindex="0"><code>${esc(sn[tab])}</code></pre>
+        <div style="margin-top:12px"><button class="btn" type="button" data-action="copy" data-copy-snippet="${tab}">${icon('copy')}Copiar código</button></div></section>
+      <section class="card"><h2>Campos aceitos</h2>
+        <ul class="steps small"><li><b>nome</b> (obrigatório) e <b>email</b> ou <b>telefone</b></li><li><b>empresa</b>, <b>mensagem</b>, <b>servico</b>, <b>pagina</b></li><li><b>utm_source</b>, <b>utm_medium</b>, <b>utm_campaign</b> — guardados na ficha do lead</li><li>Cada lead novo entra em “Novo lead”, é distribuído em rodízio para a equipe e ganha uma tarefa de primeiro contato.</li></ul></section>
+    </div>
+    <div class="od-stack" style="--od-gap:16px">
+      <section class="card"><h2>Testar: simular lead do site</h2>
+        <p class="small muted" style="margin-bottom:12px">Envia um lead de verdade para o endereço de recebimento, como se viesse do seu formulário. Ele entra no funil agora.</p>
+        <form id="simForm" novalidate class="od-stack" style="--od-gap:12px">
+          <div id="simSum" class="err-sum" hidden role="alert"></div>
+          <div class="form-grid">
+            <div class="od-field"><label class="req" for="s-nome">Nome</label><input id="s-nome" name="nome" type="text" data-validate="nome" aria-describedby="s-nome-e" autocomplete="off"><span class="err" id="s-nome-e" hidden></span></div>
+            <div class="od-field"><label class="req" for="s-email">E-mail</label><input id="s-email" name="email" type="email" data-validate="email" aria-describedby="s-email-e" autocomplete="off"><span class="err" id="s-email-e" hidden></span></div>
+            <div class="od-field"><label for="s-tel">WhatsApp</label><input id="s-tel" name="telefone" type="tel" autocomplete="off"></div>
+            <div class="od-field"><label for="s-emp">Empresa</label><input id="s-emp" name="empresa" type="text" autocomplete="off"></div>
+            <div class="od-field"><label for="s-srv">Serviço de interesse</label><select id="s-srv" name="servico">${opt(SERVICOS)}</select></div>
+            <div class="od-field"><label for="s-src">utm_source</label><select id="s-src" name="source"><option>google</option><option>facebook</option><option>instagram</option><option>newsletter</option><option value="">(direto)</option></select></div>
+            <div class="od-field"><label for="s-med">utm_medium</label><select id="s-med" name="medium"><option>cpc</option><option>paid</option><option>organic</option><option>email</option><option value="">(nenhum)</option></select></div>
+            <div class="od-field"><label for="s-cam">utm_campaign</label><input id="s-cam" name="campaign" type="text" value="black-friday-2026" autocomplete="off"></div>
+            <div class="od-field full"><label for="s-msg">Mensagem</label><textarea id="s-msg" name="mensagem"></textarea></div>
+          </div>
+          <div class="od-cluster"><button class="btn primary" type="submit" id="simBtn">${icon('send')}Enviar lead de teste</button></div>
+        </form></section>
+      <section class="card"><h2>Últimos leads do site</h2>
+        ${siteLeads.length ? `<ul class="mini-list">${siteLeads.map((l) => `<li><span class="avatar" aria-hidden="true">${initials(l.nome)}</span><div class="od-fill"><button class="link-btn od-truncate" type="button" data-action="open-lead" data-id="${l.id}" data-focus-key="i-${l.id}">${esc(l.nome)}</button><span class="small muted od-truncate">${esc(l.utm && l.utm.campaign ? l.utm.source + ' / ' + l.utm.campaign : 'sem UTM')} · ${fmtDT(l.criado)}</span></div>${stageChip(l.etapa)}</li>`).join('')}</ul>` : '<div class="empty"><b>Nenhum lead do site ainda</b>Envie um lead de teste ao lado.</div>'}</section>
+      <section class="card"><h2>Como ligar no seu site</h2>
+        <ol class="steps small"><li>Copie o código da aba “Formulário HTML” (ou JavaScript).</li><li>Cole no seu site (WordPress, Webflow, landing page).</li><li>Envie um teste e confira o lead em “Novo lead”.</li></ol></section>
+    </div>
+  </div>`;
+}
+
+function renderConfig() {
+  return `${head('Ajustes', 'Equipe e funil de vendas')}${banner()}
+  <div class="int-grid od-grid">
+    <section class="card"><h2>Equipe</h2>
+      <p class="small muted" style="margin-bottom:12px">Os leads do site são distribuídos em rodízio entre estas pessoas.</p>
+      <ul class="mini-list">${D().team.map((n) => `<li><span class="avatar" aria-hidden="true">${initials(n)}</span><span class="od-fill">${esc(n)}</span><button class="icon-btn" type="button" data-action="del-member" data-name="${esc(n)}" aria-label="Remover ${esc(n)}">${icon('trash')}</button></li>`).join('')}</ul>
+      <form id="memberForm" class="od-row" style="margin-top:12px;align-items:flex-end" novalidate>
+        <div class="od-field od-fill"><label for="m-n">Novo membro</label><input id="m-n" type="text" autocomplete="off"></div>
+        <button class="btn" type="submit">${icon('plus')}Adicionar</button></form></section>
+    <section class="card"><h2>Etapas do funil</h2>
+      <ul class="mini-list">${STAGES.map((s, i) => `<li><span class="muted small" style="width:20px">${i + 1}</span>${stageChip(s.id)}<span class="small muted">${{ novo: 'Lead acabou de entrar', qualificacao: 'Entender orçamento e fit', reuniao: 'Diagnóstico agendado', proposta: 'Proposta enviada', negociacao: 'Ajustes e contrato', ganho: 'Virou cliente', perdido: 'Não fechou' }[s.id]}</span></li>`).join('')}</ul>
+      <p class="small muted" style="margin-top:12px">Nesta versão as etapas são fixas.</p></section>
+    <section class="card"><h2>Dados</h2>
+      <div class="od-stack" style="--od-gap:12px"><p class="small muted">Os dados ficam salvos no servidor e são compartilhados com toda a equipe logada.</p>
+      <div class="od-cluster"><button class="btn" type="button" data-action="clear-demo">Remover dados de exemplo</button><button class="btn danger" type="button" data-action="reset-all">Apagar todos os leads e tarefas</button></div></div></section>
+  </div>`;
+}
+
+/* ----- Kanban de tarefas ----- */
+const TCOLS = [
+  { id: 'todo', nome: 'A fazer', hint: 'Ainda não começou' },
+  { id: 'doing', nome: 'Em andamento', hint: 'Em execução agora' },
+  { id: 'done', nome: 'Concluídas', hint: 'Finalizadas' }
+];
+function taskStatus(t) { if (t.feito) return 'done'; return t.status === 'doing' ? 'doing' : 'todo'; }
+function setTaskStatus(id, s) {
+  const t = D().tasks.find((x) => x.id === id); if (!t || taskStatus(t) === s) return;
+  t.status = s; t.feito = s === 'done';
+  const l = leadById(t.leadId); if (l) log(l, `Tarefa “${t.titulo}” → ${TCOLS.find((c) => c.id === s).nome}`);
+  save(); render(); toast(`Tarefa movida para ${TCOLS.find((c) => c.id === s).nome}`);
+}
+function renderKanban() {
+  const resp = state.filters.resp; const td = todayStr();
+  const list = D().tasks.filter((t) => !resp || t.resp === resp).sort((a, b) => a.venc.localeCompare(b.venc));
+  const cols = TCOLS.map((c) => {
+    const items = list.filter((t) => taskStatus(t) === c.id);
+    const cards = items.map((t) => {
+      const l = leadById(t.leadId); const late = !t.feito && t.venc < td; const today = !t.feito && t.venc === td;
+      return `<div class="kcard tcard ${t.feito ? 'done' : ''}" draggable="true" data-tid="${t.id}">
+        <div class="tt" style="font-weight:700;${t.feito ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(t.titulo)}</div>
+        ${l ? `<button class="link-btn small od-truncate" type="button" data-action="open-lead" data-id="${l.id}" data-focus-key="kt-${t.id}">${esc(l.nome)}${l.empresa ? ' · ' + esc(l.empresa) : ''}</button>` : ''}
+        <div class="small ${late ? 'due-late' : today ? 'due-today' : 'muted'}">${late ? 'Atrasada · ' : today ? 'Hoje · ' : 'Vence '}${fmtD(t.venc)}</div>
+        <div class="od-row"><span class="avatar" title="${esc(t.resp)}" aria-hidden="true">${initials(t.resp)}</span><span class="small muted od-fill od-truncate">${esc(t.resp) || 'Sem responsável'}</span>
+        <select aria-label="Mover tarefa ${esc(t.titulo)}" data-tmove="${t.id}" data-focus-key="tm-${t.id}" style="width:auto;max-width:130px">${TCOLS.map((x) => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${esc(x.nome)}</option>`).join('')}</select></div></div>`;
+    }).join('');
+    return `<section class="col tcol" data-tcol="${c.id}" aria-label="${esc(c.nome)}"><div class="col-head"><div class="row1"><b>${esc(c.nome)}</b><span class="chip plain">${items.length}</span></div><span class="sum">${esc(c.hint)}</span></div>
+      <div class="col-body">${cards || '<div class="col-empty">Arraste uma tarefa para cá</div>'}</div></section>`;
+  }).join('');
+  const respSel = `<div class="toolbar"><div class="od-field"><label for="kb-r">Responsável</label><select id="kb-r" data-filter="resp"><option value="">Todos</option>${D().team.map((n) => `<option value="${esc(n)}" ${n === resp ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div></div>`;
+  return `${head('Kanban de tarefas', 'Acompanhe os follow-ups por andamento. Arraste os cards ou use o seletor de cada um.', `<button class="btn primary" type="button" data-action="new-task">${icon('plus')}Nova tarefa</button>`)}${respSel}
+    <div class="board" style="grid-auto-columns:minmax(280px,1fr)">${cols}</div>`;
+}
+
+const RENDERERS = { dashboard: renderDashboard, funil: renderFunil, kanban: renderKanban, leads: renderLeads, clientes: renderClientes, tarefas: renderTarefas, integracao: renderIntegracao, config: renderConfig };
+function render() {
+  const active = document.activeElement; const key = active && active.dataset && (active.dataset.focusKey || active.id);
+  const caret = active && active.id === 'f-q' ? active.selectionStart : null;
+  renderNav();
+  $('#view').innerHTML = RENDERERS[state.view]();
+  if (state.openLead && $('#leadDlg').open) renderLeadDrawer();
+  if (key && !$('#leadDlg').open) {
+    const t = document.getElementById(key) || $(`[data-focus-key="${key}"]`);
+    if (t) { t.focus(); if (caret != null && t.setSelectionRange) t.setSelectionRange(caret, caret); }
+  }
+}
+
+/* ----- Ficha do lead ----- */
+function renderLeadDrawer() {
+  const l = leadById(state.openLead); const d = $('#leadDlg');
+  if (!l) { closeDlg(d); return; }
+  const tasks = D().tasks.filter((t) => t.leadId === l.id).sort((a, b) => a.venc.localeCompare(b.venc));
+  const info = (k, v) => `<div class="od-field"><span class="small muted">${k}</span><span>${v || '<span class="muted">—</span>'}</span></div>`;
+  const u = l.utm || {};
+  const scrollTop = $('.dlg-body', d) ? $('.dlg-body', d).scrollTop : 0;
+  d.innerHTML = `<div class="dlg-in">
+    <div class="dlg-head"><div class="od-fill"><h2 id="leadTitle" class="od-truncate">${esc(l.nome)}</h2><div class="small muted od-truncate">${esc(l.empresa) || 'Sem empresa'}</div></div>
+      <button class="icon-btn" type="button" data-action="close-dlg" data-dlg="leadDlg" aria-label="Fechar ficha">${icon('x')}</button></div>
+    <div class="dlg-body">
+      <div class="sec"><h3>Etapa do funil</h3><div class="stepper" role="group" aria-label="Etapa do funil">${STAGES.map((s) => `<button type="button" class="st-${s.id}" data-action="set-stage" data-stage="${s.id}" aria-pressed="${l.etapa === s.id}">${esc(s.nome)}</button>`).join('')}</div>
+        ${l.etapa === 'perdido' ? `<p class="small" style="margin-top:8px">Motivo da perda: <b>${esc(l.perda)}</b></p>` : ''}</div>
+      <div class="sec"><h3>Contato e negócio</h3><div class="info-grid od-grid">
+        ${info('E-mail', l.email ? `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>` : '')}
+        ${info('Telefone', l.telefone ? `<a href="tel:${esc(l.telefone.replace(/\D/g, ''))}">${esc(l.telefone)}</a>` : '')}
+        ${info('Serviço de interesse', esc(l.servico))}
+        ${info(l.etapa === 'ganho' ? 'Mensalidade' : 'Valor mensal estimado', l.valor ? brl(l.valor) : '')}
+        ${info('Responsável', esc(l.resp))}
+        ${info('Entrada', fmtDT(l.criado))}
+        ${info('Origem', esc(l.origem))}
+        ${info('UTM', u.source || u.campaign ? esc([u.source, u.medium, u.campaign].filter(Boolean).join(' / ')) : '')}</div></div>
+      <div class="sec"><h3>Tarefas (${tasks.filter((t) => !t.feito).length} abertas)</h3>
+        ${tasks.length ? tasks.map(taskItem).join('') : '<p class="small muted">Nenhuma tarefa. Crie o próximo passo para este lead.</p>'}
+        <button class="btn sm" type="button" data-action="new-task" data-lead="${l.id}" style="margin-top:8px">${icon('plus')}Nova tarefa</button></div>
+      <div class="sec"><h3>Notas</h3>
+        <div class="od-stack" style="--od-gap:8px">${l.notas.length ? l.notas.map((n) => `<div class="note">${esc(n.txt)}<small>${esc(n.autor || '')} · ${fmtDT(n.t)}</small></div>`).join('') : '<p class="small muted">Sem notas ainda.</p>'}</div>
+        <div class="od-field" style="margin-top:12px"><label for="noteTxt">Nova nota</label><textarea id="noteTxt" placeholder="Ex.: pediu orçamento para 3 meses"></textarea></div>
+        <button class="btn sm" type="button" data-action="add-note" style="margin-top:8px">Salvar nota</button></div>
+      <div class="sec"><h3>Histórico</h3><ul class="timeline">${l.hist.map((h) => `<li><time>${fmtDT(h.t)}</time>${esc(h.txt)}</li>`).join('')}</ul></div>
+    </div>
+    <div class="dlg-foot"><button class="btn danger" type="button" data-action="delete-lead" style="margin-right:auto">${icon('trash')}Excluir</button>
+      <button class="btn" type="button" data-action="edit-lead">${icon('edit')}Editar</button>
+      ${l.etapa !== 'ganho' ? `<button class="btn primary" type="button" data-action="win">Converter em cliente</button>` : ''}</div></div>`;
+  const b = $('.dlg-body', d); if (b) b.scrollTop = scrollTop;
+}
+function openLead(id, trigger) {
+  state.openLead = id; renderLeadDrawer(); openDlg($('#leadDlg'), trigger);
+  const c = $('#leadDlg .icon-btn'); if (c) c.focus();
+}
+
+/* ----- Formulário de lead ----- */
+function fieldErr(input, msg) {
+  const e = document.getElementById(input.getAttribute('aria-describedby'));
+  input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+  if (e) { e.textContent = msg || ''; e.hidden = !msg; }
+}
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+function validateField(input) {
+  const kind = input.dataset.validate; const v = input.value.trim(); let m = '';
+  if (kind === 'nome' && !v) m = 'Informe o nome para identificar o lead.';
+  if (kind === 'email' && v && !EMAIL_RE.test(v)) m = 'E-mail inválido. Use o formato nome@empresa.com.br.';
+  if (kind === 'email-required' && !v) m = 'Informe o e-mail para receber o lead.';
+  if (kind === 'email-required' && v && !EMAIL_RE.test(v)) m = 'E-mail inválido. Use o formato nome@empresa.com.br.';
+  if (kind === 'valor' && v && +v < 0) m = 'O valor não pode ser negativo.';
+  fieldErr(input, m); return !m;
+}
+function showSummary(form, sumEl, errs) {
+  if (!errs.length) { sumEl.hidden = true; sumEl.innerHTML = ''; return; }
+  sumEl.hidden = false;
+  sumEl.innerHTML = `Corrija ${errs.length === 1 ? 'o campo' : 'os campos'}: ` + errs.map((i) => `<a href="#${i.id}" data-jump="${i.id}">${esc((form.querySelector(`label[for="${i.id}"]`) || {}).textContent || i.name).replace(/ \*$/, '')}</a>`).join(', ');
+}
+function openForm(lead, trigger) {
+  const l = lead || { nome: '', empresa: '', email: '', telefone: '', origem: ORIGENS[0], servico: SERVICOS[0], valor: '', etapa: 'novo', resp: D().team[0] || '', utm: {} };
+  const d = $('#formDlg'); const u = l.utm || {};
+  const sel = (id, name, arr, cur, label) => `<div class="od-field"><label for="${id}">${label}</label><select id="${id}" name="${name}">${arr.map((v) => `<option value="${esc(v.id || v)}" ${(v.id || v) === cur ? 'selected' : ''}>${esc(v.nome || v)}</option>`).join('')}</select></div>`;
+  d.innerHTML = `<form class="dlg-in" id="leadForm" novalidate data-id="${lead ? lead.id : ''}">
+    <div class="dlg-head"><h2 id="formTitle">${lead ? 'Editar lead' : 'Novo lead'}</h2><button class="icon-btn" type="button" data-action="close-dlg" data-dlg="formDlg" aria-label="Fechar">${icon('x')}</button></div>
+    <div class="dlg-body"><div class="err-sum" id="formSum" hidden role="alert"></div>
+      <div class="form-grid">
+        <div class="od-field"><label class="req" for="lf-nome">Nome</label><input id="lf-nome" name="nome" type="text" value="${esc(l.nome)}" data-validate="nome" aria-describedby="lf-nome-e" autocomplete="off"><span class="err" id="lf-nome-e" hidden></span></div>
+        <div class="od-field"><label for="lf-emp">Empresa</label><input id="lf-emp" name="empresa" type="text" value="${esc(l.empresa)}" autocomplete="off"></div>
+        <div class="od-field"><label for="lf-email">E-mail</label><input id="lf-email" name="email" type="email" value="${esc(l.email)}" data-validate="email" aria-describedby="lf-email-e" autocomplete="off"><span class="err" id="lf-email-e" hidden></span></div>
+        <div class="od-field"><label for="lf-tel">Telefone / WhatsApp</label><input id="lf-tel" name="telefone" type="tel" value="${esc(l.telefone)}" aria-describedby="lf-tel-e" autocomplete="off"><span class="err" id="lf-tel-e" hidden></span></div>
+        ${sel('lf-ori', 'origem', ORIGENS, l.origem, 'Origem')}
+        ${sel('lf-srv', 'servico', SERVICOS, l.servico, 'Serviço de interesse')}
+        <div class="od-field"><label for="lf-val">Valor mensal estimado (R$)</label><input id="lf-val" name="valor" type="number" min="0" step="100" value="${esc(l.valor)}" data-validate="valor" aria-describedby="lf-val-e"><span class="err" id="lf-val-e" hidden></span></div>
+        ${sel('lf-resp', 'resp', D().team.length ? D().team : [''], l.resp, 'Responsável')}
+        ${lead ? '' : sel('lf-etapa', 'etapa', STAGES.filter((s) => s.id !== 'perdido'), l.etapa, 'Etapa inicial')}
+      </div>
+      <details><summary class="lbl" style="cursor:pointer;min-height:32px">Origem da campanha (UTM)</summary>
+        <div class="form-grid" style="margin-top:8px"><div class="od-field"><label for="lf-us">utm_source</label><input id="lf-us" name="source" type="text" value="${esc(u.source || '')}"></div>
+        <div class="od-field"><label for="lf-um">utm_medium</label><input id="lf-um" name="medium" type="text" value="${esc(u.medium || '')}"></div>
+        <div class="od-field full"><label for="lf-uc">utm_campaign</label><input id="lf-uc" name="campaign" type="text" value="${esc(u.campaign || '')}"></div></div></details>
+      <p class="field-help">Informe ao menos e-mail ou telefone para conseguir falar com o lead.</p></div>
+    <div class="dlg-foot"><button class="btn" type="button" data-action="close-dlg" data-dlg="formDlg">Cancelar</button><button class="btn primary" type="submit">${lead ? 'Salvar alterações' : 'Criar lead'}</button></div></form>`;
+  openDlg(d, trigger); $('#lf-nome').focus();
+}
+function submitLeadForm(form) {
+  const sum = $('#formSum'); const errs = [];
+  $$('[data-validate]', form).forEach((i) => { if (!validateField(i)) errs.push(i); });
+  const email = form.email.value.trim(), tel = form.telefone.value.trim();
+  const telInput = form.telefone;
+  if (!email && !tel) { fieldErr(telInput, 'Informe e-mail ou telefone para contato.'); errs.push(telInput); } else fieldErr(telInput, '');
+  showSummary(form, sum, errs);
+  if (errs.length) { errs[0].focus(); return; }
+  const id = form.dataset.id; const f = form;
+  const data = { nome: f.nome.value.trim(), empresa: f.empresa.value.trim(), email, telefone: tel, origem: f.origem.value, servico: f.servico.value, valor: +f.valor.value || 0, resp: f.resp.value, utm: { source: f.source.value.trim(), medium: f.medium.value.trim(), campaign: f.campaign.value.trim() } };
+  if (id) { const l = leadById(id); Object.assign(l, data); log(l, 'Dados do lead atualizados'); toast('Lead atualizado'); }
+  else { const etapa = f.etapa.value; const l = { id: uid(), ...data, etapa, criado: nowISO(), notas: [], hist: [{ t: nowISO(), txt: 'Lead criado manualmente — ' + data.origem }] }; if (etapa === 'ganho') l.ganhoEm = nowISO(); D().leads.unshift(l); state.newId = l.id; toast('Lead criado'); }
+  save(); closeDlg($('#formDlg')); render();
+}
+
+/* ----- Tarefas ----- */
+function openTaskForm(leadId, trigger) {
+  const d = $('#taskDlg');
+  d.innerHTML = `<form class="dlg-in" id="taskForm" novalidate>
+    <div class="dlg-head"><h2 id="taskTitle">Nova tarefa</h2><button class="icon-btn" type="button" data-action="close-dlg" data-dlg="taskDlg" aria-label="Fechar">${icon('x')}</button></div>
+    <div class="dlg-body"><div class="err-sum" id="taskSum" hidden role="alert"></div>
+      <div class="od-field"><label class="req" for="tk-titulo">O que precisa ser feito</label><input id="tk-titulo" name="titulo" type="text" data-validate="nome" aria-describedby="tk-titulo-e" autocomplete="off"><span class="err" id="tk-titulo-e" hidden></span></div>
+      <div class="od-field"><label for="tk-lead">Lead</label><select id="tk-lead" name="lead">${D().leads.map((l) => `<option value="${l.id}" ${l.id === leadId ? 'selected' : ''}>${esc(l.nome)}${l.empresa ? ' — ' + esc(l.empresa) : ''}</option>`).join('')}</select></div>
+      <div class="form-grid"><div class="od-field"><label for="tk-venc">Vencimento</label><input id="tk-venc" name="venc" type="date" value="${isoDay(addDays(1))}"></div>
+      <div class="od-field"><label for="tk-resp">Responsável</label><select id="tk-resp" name="resp">${D().team.map((n) => `<option>${esc(n)}</option>`).join('')}</select></div></div></div>
+    <div class="dlg-foot"><button class="btn" type="button" data-action="close-dlg" data-dlg="taskDlg">Cancelar</button><button class="btn primary" type="submit">Criar tarefa</button></div></form>`;
+  openDlg(d, trigger); $('#tk-titulo').focus();
+}
+
+/* ===== Eventos ===== */
+document.addEventListener('click', (e) => {
+  const j = e.target.closest('[data-jump]'); if (j) { e.preventDefault(); const t = document.getElementById(j.dataset.jump); if (t) t.focus(); return; }
+  const el = e.target.closest('[data-action]'); if (!el) return;
+  const a = el.dataset.action; const id = el.dataset.id;
+  switch (a) {
+    case 'nav': setView(el.dataset.view); break;
+    case 'open-lead': openLead(id, el); break;
+    case 'new-lead': openForm(null, el); break;
+    case 'edit-lead': { const l = leadById(state.openLead); closeDlg($('#leadDlg')); openForm(l, el); break; }
+    case 'close-dlg': closeDlg(document.getElementById(el.dataset.dlg)); break;
+    case 'set-stage': { const to = el.dataset.stage; const l = leadById(state.openLead); if (to === 'perdido') openLoss(l.id, el); else moveLead(l.id, to); break; }
+    case 'win': moveLead(state.openLead, 'ganho'); break;
+    case 'delete-lead': { const l = leadById(state.openLead); confirmBox('Excluir lead?', `“${l.nome}” e suas tarefas serão removidos. Essa ação não pode ser desfeita.`, 'Excluir', () => { D().leads = D().leads.filter((x) => x.id !== l.id); D().tasks = D().tasks.filter((t) => t.leadId !== l.id); save(); closeDlg($('#leadDlg')); render(); toast('Lead excluído'); }, el); break; }
+    case 'add-note': { const ta = $('#noteTxt'); const v = ta.value.trim(); if (!v) { ta.focus(); toast('Escreva a nota antes de salvar'); break; } const l = leadById(state.openLead); l.notas.unshift({ t: nowISO(), txt: v, autor: l.resp || 'Equipe' }); log(l, 'Nota adicionada'); save(); renderLeadDrawer(); toast('Nota salva'); break; }
+    case 'new-task': openTaskForm(el.dataset.lead || '', el); break;
+    case 'toggle-task': { const t = D().tasks.find((x) => x.id === id); if (t) { t.feito = !t.feito; save(); render(); } break; }
+    case 'del-task': { D().tasks = D().tasks.filter((x) => x.id !== id); save(); render(); toast('Tarefa excluída'); break; }
+    case 'clear-filters': state.filters = { q: '', etapa: '', origem: '', resp: '' }; render(); break;
+    case 'more': state.limit += 50; render(); break;
+    case 'tab': state.tab = el.dataset.tab; render(); break;
+    case 'toggle-key': state.showKey = !state.showKey; render(); break;
+    case 'regen-key': confirmBox('Gerar nova chave?', 'A chave atual deixa de funcionar. Atualize os formulários do site com a nova chave.', 'Gerar nova chave', () => { D().apiKey = genKey(); state.showKey = false; save(); render(); toast('Nova chave gerada'); }, el); break;
+    case 'copy': {
+      const txt = el.dataset.copySnippet ? snippets()[el.dataset.copySnippet] : el.dataset.copy;
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Copiado'), () => toast('Não foi possível copiar automaticamente. Selecione o texto e copie.'));
+      break; }
+    case 'clear-demo': confirmBox('Remover dados de exemplo?', 'Leads e tarefas de exemplo serão apagados. O que você cadastrou fica.', 'Remover', () => { const ids = new Set(D().leads.filter((l) => l.exemplo).map((l) => l.id)); D().leads = D().leads.filter((l) => !ids.has(l.id)); D().tasks = D().tasks.filter((t) => !ids.has(t.leadId)); save(); render(); toast('Dados de exemplo removidos'); }, el); break;
+    case 'reset-all': confirmBox('Apagar tudo?', 'Todos os leads, clientes e tarefas serão removidos para toda a equipe. Essa ação não pode ser desfeita.', 'Apagar tudo', () => { D().leads = []; D().tasks = []; save(); render(); toast('Dados apagados'); }, el); break;
+    case 'logout': sb.auth.signOut().then(() => location.reload()); break;
+    case 'del-member': D().team = D().team.filter((n) => n !== el.dataset.name); save(); render(); break;
+  }
+});
+
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.filter) { state.filters[t.dataset.filter] = t.value; render(); return; }
+  if (t.dataset.move) { const to = t.value; const l = leadById(t.dataset.move); if (to === 'perdido') { t.value = l.etapa; openLoss(l.id, t); } else moveLead(l.id, to); return; }
+  if (t.dataset.tmove) { setTaskStatus(t.dataset.tmove, t.value); return; }
+  if (t.dataset.toggle) { const tk = D().tasks.find((x) => x.id === t.dataset.toggle); if (tk) { tk.feito = t.checked; save(); render(); } }
+});
+document.addEventListener('input', (e) => { const t = e.target; if (t.dataset && t.dataset.filter === 'q') { state.filters.q = t.value; state.limit = 50; render(); } });
+document.addEventListener('focusout', (e) => { const t = e.target; if (t.dataset && t.dataset.validate) validateField(t); });
+
+document.addEventListener('submit', (e) => {
+  e.preventDefault(); const f = e.target;
+  if (f.id === 'leadForm') submitLeadForm(f);
+  else if (f.id === 'taskForm') {
+    const i = f.titulo; if (!validateField(i)) { i.focus(); return; }
+    D().tasks.unshift({ id: uid(), leadId: f.lead.value, titulo: i.value.trim(), venc: f.venc.value || todayStr(), resp: f.resp.value, feito: false });
+    const l = leadById(f.lead.value); if (l) log(l, 'Tarefa criada: ' + i.value.trim());
+    save(); closeDlg($('#taskDlg')); render(); toast('Tarefa criada');
+  } else if (f.id === 'lossForm') {
+    const l = leadById(f.dataset.id); const m = f.motivo.value === 'Outro' && f.outro.value.trim() ? f.outro.value.trim() : f.motivo.value;
+    closeDlg($('#lossDlg')); moveLead(l.id, 'perdido', m);
+  } else if (f.id === 'simForm') {
+    const nome = f.nome, email = f.email; const errs = [];
+    if (!validateField(nome)) errs.push(nome);
+    if (!email.value.trim()) { fieldErr(email, 'Informe o e-mail para receber o lead.'); errs.push(email); } else if (!validateField(email)) errs.push(email);
+    showSummary(f, $('#simSum'), errs);
+    if (errs.length) { errs[0].focus(); return; }
+    const btn = $('#simBtn'); btn.disabled = true; btn.textContent = 'Enviando…';
+    const payload = { nome: nome.value.trim(), email: email.value.trim(), telefone: f.telefone.value.trim(), empresa: f.empresa.value.trim(), servico: f.servico.value, mensagem: f.mensagem.value.trim(), utm_source: f.source.value, utm_medium: f.medium.value, utm_campaign: f.campaign.value.trim() };
+    fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + D().apiKey }, body: JSON.stringify(payload) })
+      .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Erro ' + r.status); return j; })
+      .then(async (j) => { await loadAll(); state.newId = j.id; render(); toast(`Lead “${payload.nome}” recebido do site`, 'Ver no funil', () => setView('funil')); })
+      .catch((err) => { toast('Não foi possível enviar: ' + err.message); render(); });
+  } else if (f.id === 'memberForm') {
+    const v = $('#m-n').value.trim(); if (!v) { $('#m-n').focus(); toast('Digite o nome do membro'); return; }
+    if (!D().team.includes(v)) D().team.push(v); save(); render();
+  }
+});
+
+function openLoss(id, trigger) {
+  const l = leadById(id); const d = $('#lossDlg');
+  d.innerHTML = `<form class="dlg-in" id="lossForm" data-id="${id}">
+    <div class="dlg-head"><h2 id="lossTitle">Por que ${esc(l.nome)} foi perdido?</h2></div>
+    <div class="dlg-body"><div class="od-field"><label for="ls-m">Motivo</label><select id="ls-m" name="motivo">${MOTIVOS.map((m) => `<option>${esc(m)}</option>`).join('')}</select></div>
+      <div class="od-field"><label for="ls-o">Detalhe (opcional)</label><input id="ls-o" name="outro" type="text" autocomplete="off"><span class="field-help">Usado só se o motivo for “Outro”.</span></div></div>
+    <div class="dlg-foot"><button class="btn" type="button" data-action="close-dlg" data-dlg="lossDlg">Cancelar</button><button class="btn primary" type="submit">Marcar como perdido</button></div></form>`;
+  openDlg(d, trigger); $('#ls-m').focus();
+}
+
+/* Arrastar e soltar no funil */
+let dragId = null;
+document.addEventListener('dragstart', (e) => { const c = e.target.closest && e.target.closest('.kcard'); if (!c) return; dragId = c.dataset.id; c.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', dragId); } catch (x) { /* ok */ } });
+document.addEventListener('dragend', () => { dragId = null; $$('.kcard.dragging').forEach((c) => c.classList.remove('dragging')); $$('.col.over').forEach((c) => c.classList.remove('over')); });
+document.addEventListener('dragover', (e) => { const col = e.target.closest && e.target.closest('.col'); if (col && dragId) { e.preventDefault(); $$('.col.over').forEach((c) => { if (c !== col) c.classList.remove('over'); }); col.classList.add('over'); } });
+document.addEventListener('drop', (e) => {
+  const col = e.target.closest && e.target.closest('.col'); if (!col || !dragId) return; e.preventDefault();
+  const id = dragId; const to = col.dataset.col; const l = leadById(id); dragId = null; col.classList.remove('over');
+  if (!l || l.etapa === to) return;
+  if (to === 'perdido') openLoss(id, null); else moveLead(id, to);
+});
+
+/* Arrastar e soltar no Kanban de tarefas */
+let dragTask = null;
+document.addEventListener('dragstart', (e) => { const c = e.target.closest && e.target.closest('.tcard'); if (!c) return; dragTask = c.dataset.tid; c.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', dragTask); } catch (x) { /* ok */ } });
+document.addEventListener('dragend', () => { dragTask = null; $$('.tcol.over').forEach((c) => c.classList.remove('over')); });
+document.addEventListener('dragover', (e) => { const col = e.target.closest && e.target.closest('.tcol'); if (col && dragTask) { e.preventDefault(); $$('.tcol.over').forEach((c) => { if (c !== col) c.classList.remove('over'); }); col.classList.add('over'); } });
+document.addEventListener('drop', (e) => { const col = e.target.closest && e.target.closest('.tcol'); if (!col || !dragTask) return; e.preventDefault(); const id = dragTask; dragTask = null; col.classList.remove('over'); setTaskStatus(id, col.dataset.tcol); });
+
+/* Login e inicialização */
+const startEl = $('#start'); const appEl = $('.app');
+let channel = null; let refreshTimer = null;
+function showLogin(msg) { startEl.hidden = false; appEl.hidden = true; if (msg) { $('#startNote').textContent = msg; } const e = $('#lg-email'); if (e && !e.disabled) e.focus(); }
+function scheduleRefresh() {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async () => {
+    if (pending > 0 || Date.now() - lastWriteEnd < 1500) return;
+    const busy = $$('dialog').some((d) => d.open) || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
+    if (busy) { scheduleRefresh(); return; }
+    try { await loadAll(); render(); } catch (e) { /* tenta no próximo evento */ }
+  }, 800);
+}
+async function enterApp(session) {
+  try { await loadAll(); } catch (err) {
+    console.error(err);
+    showLogin('Conectou, mas não consegui ler os dados. Confira se o arquivo supabase/schema.sql foi executado.'); return;
+  }
+  $('#whoAmI').textContent = session.user.email || '';
+  startEl.hidden = true; appEl.hidden = false; setView('dashboard');
+  if (!channel) {
+    channel = sb.channel('crm-sync');
+    ['leads', 'tasks', 'team', 'settings'].forEach((t) => channel.on('postgres_changes', { event: '*', schema: 'public', table: t }, scheduleRefresh));
+    channel.subscribe();
+  }
+}
+$('#loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target; const err = $('#loginErr'); err.hidden = true;
+  if (!sb) return;
+  const btn = $('#loginBtn'); btn.disabled = true; btn.textContent = 'Entrando…';
+  const { data, error } = await sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.password.value });
+  btn.disabled = false; btn.textContent = 'Entrar no CRM';
+  if (error) { err.textContent = 'E-mail ou senha incorretos.'; err.hidden = false; f.password.focus(); return; }
+  f.password.value = '';
+  enterApp(data.session);
+});
+(async function boot() {
+  if (!sb) {
+    $('#loginForm').querySelectorAll('input,button').forEach((x) => { x.disabled = true; });
+    $('#startNote').textContent = 'CRM ainda não configurado: preencha o arquivo config.js com os dados do seu projeto Supabase (veja o README).';
+    return;
+  }
+  const { data } = await sb.auth.getSession();
+  if (data.session) enterApp(data.session); else showLogin();
+})();
+})();
+</script>
+</body>
+</html>

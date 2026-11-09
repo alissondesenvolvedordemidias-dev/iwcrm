@@ -1,0 +1,144 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;700&display=swap");
+
+/* ==========================================================================
+   Funil CRM — Design Tokens v2.0 (identidade da marca)
+   Ponto único de edição de cores, tipografia, espaçamento, raios, sombras
+   e movimento. Use var(--token) no app.
+   Tema escuro: automático (prefers-color-scheme) ou forçado com
+   <html data-theme="dark"> / <html data-theme="light">.
+
+   Cores da marca: #000000 · #0a0e16 · #1d2738 (principal) · #c7ad6c · #e8e9eb
+   Fontes da marca: Sora Light / Regular / Bold · Quiche Sans
+   ========================================================================== */
+
+/* Quiche Sans: coloque os arquivos em ./fonts/ (nomes abaixo). Enquanto não
+   existirem, os títulos usam a Sora como substituta. */
+@font-face { font-family: "Quiche Sans"; font-weight: 400; font-style: normal; font-display: swap;
+  src: local("Quiche Sans"), local("QuicheSans-Regular"), url("fonts/QuicheSans-Regular.woff2") format("woff2"), url("fonts/QuicheSans-Regular.otf") format("opentype"); }
+@font-face { font-family: "Quiche Sans"; font-weight: 700; font-style: normal; font-display: swap;
+  src: local("Quiche Sans Bold"), local("QuicheSans-Bold"), url("fonts/QuicheSans-Bold.woff2") format("woff2"), url("fonts/QuicheSans-Bold.otf") format("opentype"); }
+
+:root {
+  /* ---- Paleta da marca (valores de referência) ---- */
+  --brand-black: #000000;
+  --brand-ink: #0a0e16;
+  --brand-navy: #1d2738;      /* principal */
+  --brand-gold: #c7ad6c;      /* acento — só sobre fundo escuro (2,2:1 sobre branco) */
+  --brand-mist: #e8e9eb;
+
+  /* ---- Cor: superfícies e texto ---- */
+  --bg: #e8e9eb;
+  --surface: #ffffff;
+  --surface-2: #f1f2f4;
+  --text: #0a0e16;
+  --muted: #4a5565;
+  --border: #cfd3d9;          /* divisores decorativos */
+  --border-strong: #7b8494;   /* contorno de campos (3,8:1 sobre branco) */
+
+  /* ---- Cor: destaque ---- */
+  --accent: #1d2738;          /* botão primário; texto branco sobre ele */
+  --accent-hover: #0a0e16;
+  --accent-ink: #ffffff;
+  --accent-soft: #dde2ea;     /* fundo de item selecionado em áreas claras */
+  --accent-text: #1d2738;     /* texto/ícone de destaque sobre fundo claro */
+
+  /* ---- Cor: menu lateral (escuro nos dois temas) ---- */
+  --side-bg: #0a0e16;
+  --side-text: #e8e9eb;
+  --side-muted: #a7b0bf;
+  --side-active-bg: #1d2738;
+  --side-active-text: #c7ad6c;
+  --side-border: #1d2738;
+
+  /* ---- Cor: semânticas ---- */
+  --danger: #b91c1c;
+  --danger-ink: #ffffff;
+  --warn: #92400e;
+  --focus: #1d2738;
+
+  /* ---- Cor: etapas do funil (sempre acompanhadas do nome da etapa) ---- */
+  --st-novo: #1d4ed8;
+  --st-qualificacao: #0b6a80;
+  --st-reuniao: #92400e;
+  --st-proposta: #4338ca;
+  --st-negociacao: #b34108;
+  --st-ganho: #116b32;
+  --st-perdido: #b91c1c;
+
+  /* ---- Tipografia ---- */
+  --font: "Sora", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Quiche Sans", "Sora", "Segoe UI", system-ui, sans-serif;
+  --font-mono: Consolas, "Cascadia Mono", monospace;
+  --fw-light: 300;
+  --fw: 400;
+  --fw-bold: 700;
+  --fw-display: 400;
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 28px;
+  --lh-tight: 1.25;
+  --lh: 1.5;
+
+  /* ---- Espaçamento (múltiplos de 4 / 8) ---- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+
+  /* ---- Forma e profundidade ---- */
+  --r-sm: 6px;
+  --r: 8px;
+  --r-pill: 99px;
+  --shadow: 0 1px 2px rgba(10, 14, 22, .10);
+  --shadow-overlay: 0 20px 50px rgba(0, 0, 0, .35);
+
+  /* ---- Movimento ---- */
+  --dur: 180ms;               /* interações pequenas: 150–300 ms */
+  --ease-out: ease-out;
+
+  /* ---- Layout ---- */
+  --sidebar: 248px;
+  --tap: 44px;                /* alvo mínimo de toque */
+}
+
+/* ---- Tema escuro (valores definidos separadamente, não derivados do claro) ---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0e16; --surface: #141b29; --surface-2: #1d2738;
+    --text: #e8e9eb; --muted: #a7b0bf; --border: #2b3649; --border-strong: #66738a;
+    --accent: #c7ad6c; --accent-hover: #d6c08a; --accent-ink: #0a0e16; --accent-soft: #1d2738; --accent-text: #c7ad6c;
+    --side-bg: #000000; --side-border: #1d2738;
+    --danger: #ff8a8a; --danger-ink: #0a0e16; --warn: #f5c04a; --focus: #c7ad6c;
+    --st-novo: #8fb0ff; --st-qualificacao: #55d6ee; --st-reuniao: #f5c04a; --st-proposta: #b0b3ff;
+    --st-negociacao: #ffa466; --st-ganho: #5ee08e; --st-perdido: #ff8f8f;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a0e16; --surface: #141b29; --surface-2: #1d2738;
+  --text: #e8e9eb; --muted: #a7b0bf; --border: #2b3649; --border-strong: #66738a;
+  --accent: #c7ad6c; --accent-hover: #d6c08a; --accent-ink: #0a0e16; --accent-soft: #1d2738; --accent-text: #c7ad6c;
+  --side-bg: #000000; --side-border: #1d2738;
+  --danger: #ff8a8a; --danger-ink: #0a0e16; --warn: #f5c04a; --focus: #c7ad6c;
+  --st-novo: #8fb0ff; --st-qualificacao: #55d6ee; --st-reuniao: #f5c04a; --st-proposta: #b0b3ff;
+  --st-negociacao: #ffa466; --st-ganho: #5ee08e; --st-perdido: #ff8f8f;
+  --shadow: none;
+}
+
+/* ---- Classes utilitárias das etapas: definem --c para chips, colunas e barras ---- */
+.st-novo { --c: var(--st-novo); }
+.st-qualificacao { --c: var(--st-qualificacao); }
+.st-reuniao { --c: var(--st-reuniao); }
+.st-proposta { --c: var(--st-proposta); }
+.st-negociacao { --c: var(--st-negociacao); }
+.st-ganho { --c: var(--st-ganho); }
+.st-perdido { --c: var(--st-perdido); }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur: .01ms; }
+}
